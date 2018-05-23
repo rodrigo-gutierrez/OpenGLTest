@@ -11,6 +11,8 @@ using namespace glm;
 
 #include "shader.hpp"
 
+#define BUFFER_OFFSET(i) ((char *)NULL + (i))
+
 int main(void)
 {
 	// Initialise GLFW
@@ -31,7 +33,7 @@ int main(void)
 	window = glfwCreateWindow(1024, 768, "OpenGL Test", NULL, NULL);
 	glfwMakeContextCurrent(window);
 
-	glewExperimental = GL_TRUE; 
+	glewExperimental = GL_TRUE;
 	if (glewInit() != GLEW_OK)
 	{
 		fprintf(stderr, "Failed to initialize GLEW\n");
@@ -47,17 +49,76 @@ int main(void)
 	// Dark blue background
 	//glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
 
+	const int numVertices = 36;
+
+	typedef vec4 point4;
+	typedef vec4 color4;
+
+	class Cube
+	{
+	public:
+		Cube()
+		{
+			colorcube();
+		}
+		
+		point4 vPositions[numVertices];
+		color4 vColors[numVertices];
+
+	private:
+		point4 positions[8] =
+		{
+			point4(-0.5, -0.5,  0.5, 1.0),
+			point4(-0.5,  0.5,  0.5, 1.0),
+			point4(0.5,  0.5,  0.5, 1.0),
+			point4(0.5, -0.5,  0.5, 1.0),
+			point4(-0.5, -0.5, -0.5, 1.0),
+			point4(-0.5,  0.5, -0.5, 1.0),
+			point4(0.5,  0.5, -0.5, 1.0),
+			point4(0.5, -0.5, -0.5, 1.0)
+		};
+
+		color4 colors[8] =
+		{
+			color4(0.0, 0.0, 0.0, 1.0),
+			color4(1.0, 0.0, 0.0, 1.0),
+			color4(1.0, 1.0, 0.0, 1.0),
+			color4(0.0, 1.0, 0.0, 1.0),
+			color4(0.0, 0.0, 1.0, 1.0),
+			color4(1.0, 0.0, 1.0, 1.0),
+			color4(1.0, 1.0, 1.0, 1.0),
+			color4(0.0, 1.0, 1.0, 1.0)
+		};
+
+		int index = 0;
+		
+		void quad(int a, int b, int c, int d)
+		{
+			
+			vColors[index] = colors[a]; vPositions[index] = positions[a]; index++;
+			vColors[index] = colors[b]; vPositions[index] = positions[b]; index++;
+			vColors[index] = colors[c]; vPositions[index] = positions[c]; index++;
+			vColors[index] = colors[a]; vPositions[index] = positions[a]; index++;
+			vColors[index] = colors[c]; vPositions[index] = positions[c]; index++;
+			vColors[index] = colors[d]; vPositions[index] = positions[d]; index++;
+		}
+
+		void colorcube()
+		{
+			quad(1, 0, 3, 2);
+			quad(2, 3, 7, 6);
+			quad(3, 0, 4, 7);
+			quad(6, 5, 1, 2);
+			quad(4, 5, 6, 7);
+			quad(5, 4, 0, 1);
+		}
+	};
+
+	Cube cube = Cube();
+
 	GLuint VertexArrayID;
 	glGenVertexArrays(1, &VertexArrayID);
 	glBindVertexArray(VertexArrayID);
-
-	// An array of 3 vectors which represents 3 vertices
-	static const GLfloat g_vertex_buffer_data[] =
-	{
-		-1.0f, -1.0f, 0.0f,
-		1.0f, -1.0f, 0.0f,
-		0.0f,  1.0f, 0.0f,
-	};
 
 	// This will identify our vertex buffer
 	GLuint vertexbuffer;
@@ -66,7 +127,12 @@ int main(void)
 	// The following commands will talk about our 'vertexbuffer' buffer
 	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
 	// Give our vertices to OpenGL.
-	glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(cube.vPositions) + sizeof(cube.vColors), NULL, GL_STATIC_DRAW);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(cube.vPositions), cube.vPositions);
+	glBufferSubData(GL_ARRAY_BUFFER, sizeof(cube.vPositions), sizeof(cube.vColors), cube.vColors);
+
+	GLuint vPosition = glGetAttribLocation(programID, "vPosition");
+	GLuint vColor = glGetAttribLocation(programID, "vColor");
 
 	do
 	{
@@ -78,16 +144,29 @@ int main(void)
 		// 1st attribute buffer : vertices
 		glEnableVertexAttribArray(0);
 		glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+
+		glEnableVertexAttribArray(vPosition);
 		glVertexAttribPointer(
-			0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
-			3,                  // size
-			GL_FLOAT,           // type
-			GL_FALSE,           // normalized?
-			0,                  // stride
-			(void*)0            // array buffer offset
+			vPosition,
+			4,
+			GL_FLOAT,
+			GL_FALSE,
+			0,
+			BUFFER_OFFSET(0)
 		);
+
+		glEnableVertexAttribArray(vColor);
+		glVertexAttribPointer(
+			vColor,
+			4,
+			GL_FLOAT,
+			GL_FALSE,
+			0,
+			BUFFER_OFFSET(sizeof(cube.vPositions))
+		);
+
 		// Draw the triangle !
-		glDrawArrays(GL_TRIANGLES, 0, 3); // Starting from vertex 0; 3 vertices total -> 1 triangle
+		glDrawArrays(GL_TRIANGLES, 0, numVertices); // Starting from vertex 0; 3 vertices total -> 1 triangle
 
 		glDisableVertexAttribArray(0);
 
