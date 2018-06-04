@@ -1,5 +1,5 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include <iostream>
+using namespace std;
 
 #include <GL/glew.h>
 
@@ -18,7 +18,7 @@ int main(void)
 	// Initialise GLFW
 	if (!glfwInit())
 	{
-		fprintf(stderr, "Failed to initialize GLFW\n");
+		cerr << "Failed to initialize GLFW" << endl;
 		return -1;
 	}
 
@@ -36,7 +36,7 @@ int main(void)
 	glewExperimental = GL_TRUE;
 	if (glewInit() != GLEW_OK)
 	{
-		fprintf(stderr, "Failed to initialize GLEW\n");
+		cerr << "Failed to initialize GLEW" << endl;
 		return -1;
 	}
 
